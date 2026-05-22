@@ -31,9 +31,6 @@ module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) = struct
         | PropStop ->
             print_endline "Proponent has quitted the game.";
             return ()
-        | OpStop ->
-            failwith
-              "Opponent has stopped while it was not its turn. Please report."
         | Continue (output_move, pas_conf) ->
             let move_string =
               IntLTS.TypingLTS.Moves.string_of_pol_move output_move in

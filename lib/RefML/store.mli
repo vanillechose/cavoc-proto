@@ -34,7 +34,7 @@ val embed_cons_ctx : Type_ctx.cons_ctx -> store
 module Storectx : Lang.Typectx.TYPECTX
   with type t = Type_ctx.loc_ctx * Symbolic.branch_ctx * Type_ctx.cons_ctx
   and type typ = Types.typ
-  and  type Names.name = location
+  and type Names.name = location
 
 val infer_type_store : store -> Storectx.t
 

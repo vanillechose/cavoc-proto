@@ -12,7 +12,6 @@ module type RUNNABLE = sig
   include MONAD
   type 'a result = 
     | PropStop
-    | OpStop
     | Continue of 'a
   val run : 'a m -> 'a result
   val fail : unit -> 'a m
@@ -21,12 +20,11 @@ end
 module Result = struct
   type 'a result = 
     | PropStop
-    | OpStop
     | Continue of 'a
   type 'a m = 'a result
 
   let return x = Continue x
-  let ( let* ) a f = match a with PropStop -> PropStop | OpStop -> OpStop | Continue x -> f x
+  let ( let* ) a f = match a with PropStop -> PropStop | Continue x -> f x
 
   let run x = x
 

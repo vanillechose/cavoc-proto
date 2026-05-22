@@ -133,9 +133,6 @@ module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) : GRAPH with module M
             let* () = add_edge edge in
             compute_graph_monad ~show_move ~show_conf ~show_moves_list ~get_move
               pas_state
-        | OpStop ->
-            failwith
-              "Opponent has stopped while it was not its turn. Please report."
       end
     | (IntLTS.Passive pas_conf, _) as pas_state ->
         let* (input_move, act_conf) =
