@@ -9,6 +9,21 @@
 
 open Js_of_ocaml
 
+let set_button_enabled id state =
+  let disabled_style =
+    (Js.string "background-color: grey; cursor: not-allowed;")
+  in
+  match state, Dom_html.getElementById id with
+  | exception Not_found -> ()
+  | false, b ->
+      Js.Unsafe.set b "style" disabled_style ;
+      Js.Unsafe.set b "title" (Js.string "you must be evaluating code to do that") ;
+      Js.Unsafe.set b "disabled" Js._true
+  | true, b ->
+      let _ = Js.Unsafe.meth_call b "removeAttribute" [| Js.Unsafe.inject @@ Js.string "style" |] in
+      let _ = Js.Unsafe.meth_call b "removeAttribute" [| Js.Unsafe.inject @@ Js.string "title" |] in
+      Js.Unsafe.set b "disabled" Js._false
+
 let print_to_output str =
   let output_div = Dom_html.getElementById "console" in
   let current_content = Js.to_string (Js.Unsafe.get output_div "innerHTML") in

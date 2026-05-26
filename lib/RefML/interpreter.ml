@@ -35,7 +35,7 @@ module SymbolicEvalState = struct
       fun store ->
         match Store.loc_lookup store loc with
         | Some v -> [ v, store ]
-        | None -> failwith (string_of_loc loc ^ " it not in the store "
+        | None -> failwith (string_of_loc loc ^ " is not in the store "
                     ^ Store.string_of_store store)
 
     let set loc expr : unit m =

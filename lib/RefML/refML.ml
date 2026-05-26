@@ -79,11 +79,8 @@ module MakeComp (BranchMonad : Util.Monad.BRANCH) :
     let open EvalMonad in
     match
     Interpreter.normalize_opconf opconf with
-    | opconf' :: [] -> return opconf'
-    | _ :: _ -> failwith "non-determinism in evaluation"
-    (* This PropStop only means the program diverges. Any other failure
-       condition (raise, failwith, assert...) is returned normally *)
-    | [] -> PropStop
+    | _ :: _ as res -> List.map (fun x -> Continue x) res
+    | [] -> fail ()
 
   let get_typed_opconf nbprog lexBuffer =
     try

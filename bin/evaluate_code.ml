@@ -13,11 +13,13 @@
 *)
 
 open Js_of_ocaml
+open Js_of_ocaml_lwt
 open Lwt.Infix
 
 let evaluate_code () =
   Moves_manager.flush_moves ();
   Editor_manager.fetch_editor_content ();
+
   let kind_lts = Lts_config.generate_kind_lts () in
   let (module OGS_LTS) = Lts_kind.build_lts kind_lts in
 
@@ -67,8 +69,62 @@ let evaluate_code () =
         Ui_helpers.print_to_output "error : unknown";
         Lwt.fail (Failure "Unknown error") in
 
+  let choose_conf confs =
+    let nconf = List.length confs in
+
+    (* avoid prompting the user everytime the LTS stops *)
+    if nconf = 1 then Lwt.return 0 else
+
+    let load_btn   = Dom_html.getElementById "load-btn" in
+    let stop_btn   = Dom_html.getElementById "stop-btn" in
+    let choose_btn = Dom_html.getElementById "conf-choose" in
+    let prev_btn   = Dom_html.getElementById "conf-prev" in
+    let next_btn   = Dom_html.getElementById "conf-next" in
+
+    Ui_helpers.set_button_enabled "select-btn" false ;
+    show_moves_list [] ;
+
+    let cur = ref 0 in
+    let has_next () = !cur < nconf - 1 in
+    let has_prev () = !cur > 0 in
+
+    let update () =
+      Ui_helpers.set_button_enabled "conf-prev" (has_prev ()) ;
+      Ui_helpers.set_button_enabled "conf-next" (has_next ()) ;
+      Ui_helpers.set_button_enabled "conf-choose" true ;
+
+      match List.nth confs !cur with
+      | Some conf -> show_conf conf
+      | None ->
+          Js.Unsafe.meth_call Js.Unsafe.global "alert"
+            [| Js.Unsafe.inject @@ Js.string "This configuration causes the opponent to quit the game" |]
+    in
+
+    update () ;
+
+    (* Afaik it is not possible to use Lwt_js_events.click here because the user
+       may press the navigation buttons multiple times *)
+    prev_btn##.onclick := Dom_html.handler (fun _ -> decr cur ; update () ; Js._false) ;
+    next_btn##.onclick := Dom_html.handler (fun _ -> incr cur ; update () ; Js._false) ;
+
+    let disable x =
+      Ui_helpers.set_button_enabled "conf-prev" false ;
+      Ui_helpers.set_button_enabled "conf-next" false ;
+      Ui_helpers.set_button_enabled "conf-choose" false ;
+      Ui_helpers.set_button_enabled "select-btn" true ;
+
+      Lwt.return x
+    in
+
+    Lwt.pick [
+      (Lwt_js_events.click choose_btn >>= disable >>= fun _ -> Lwt.return !cur) ;
+      (Lwt_js_events.click load_btn >>= disable >>= fun _ -> Lwt.fail (Failure "Stop")) ;
+      (Lwt_js_events.click stop_btn >>= disable >>= fun _ -> Lwt.fail (Failure "Stop")) ;
+    ]
+  in
+
   match%lwt
-    IBuild.interactive_build ~show_move ~show_conf ~show_moves_list ~get_move
+    IBuild.interactive_build ~show_move ~choose_conf ~show_conf ~show_moves_list ~get_move
       init_conf
   with (* Should we deal with failure encapsulated in the Lwt monad ?*)
   | () -> let () = Js.Unsafe.global##onSuccess [||] in

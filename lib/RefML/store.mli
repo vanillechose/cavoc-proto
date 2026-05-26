@@ -1,10 +1,4 @@
-(* This constructor has to be made public, otherwise
-   the location returned by Storectx.add_fresh in
-   generate_abstract_val is not usable. *)
-type location =
-  | Loc of Syntax.loc
-  | Sym of Symbolic.id
-  | Cons of Syntax.constructor [@@deriving to_yojson]
+type location
 
 type store =
   { valenv : Syntax.val_env

@@ -13,7 +13,8 @@ module type RUNNABLE = sig
   type 'a result = 
     | PropStop
     | Continue of 'a
-  val run : 'a m -> 'a result
+
+  val run : 'a m -> 'a result list
   val fail : unit -> 'a m
 end
 
@@ -21,14 +22,19 @@ module Result = struct
   type 'a result = 
     | PropStop
     | Continue of 'a
-  type 'a m = 'a result
+  type 'a m = 'a result list
 
-  let return x = Continue x
-  let ( let* ) a f = match a with PropStop -> PropStop | Continue x -> f x
+  let return x =
+    [ Continue x ]
+
+  let ( let* ) a f =
+    let bs = List.map
+      (function PropStop -> [ PropStop ] | Continue x -> f x) a in
+    List.concat bs
 
   let run x = x
 
-  let fail () = PropStop
+  let fail () = [ PropStop ]
 end
 
 module Option = struct

@@ -159,13 +159,8 @@ module Storectx = struct
   let singleton _ =
     failwith "Singleton not relevant for store typing context. Please report."
 
-  let add_fresh (loc_ctx, branch_ctx, cons_ctx) _ ty =
-    match ty with
-    | Types.TBool ->
-        let id, branch_ctx = Symbolic.unconstrained branch_ctx in
-        Sym id, (loc_ctx, branch_ctx, cons_ctx)
-    | _ ->
-        failwith ("TODO: type " ^ Types.string_of_typ ty ^ " not handled by Storectx.add_fresh")
+  let add_fresh _ =
+    failwith "add_fresh not relevant for store typing context. Please report."
 
   let map f (loc_ctx, branch_ctx, cons_ctx) =
     let loc_ctx' = Util.Pmap.map_im f loc_ctx in

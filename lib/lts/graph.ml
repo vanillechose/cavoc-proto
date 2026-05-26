@@ -92,7 +92,7 @@ module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) : GRAPH with module M
     let* graph = get () in
     set { graph with states= state :: graph.states }
 
-  let add_failed_state state =
+  let _add_failed_state state =
     let* graph = get () in
     set { graph with failed_states= state :: graph.failed_states }
 
@@ -108,7 +108,7 @@ module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) : GRAPH with module M
     let* () = add_state act_state in
     return act_state
 
-  let add_pas_state act_conf =
+  let _add_pas_state act_conf =
     let id = fresh_id_state () in
     let act_state = (IntLTS.Passive act_conf, id) in
     let* () = add_state act_state in
@@ -122,8 +122,10 @@ module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) : GRAPH with module M
   (* TODO: Why ? *)
   let rec compute_graph_monad ~show_move ~show_conf ~show_moves_list ~get_move =
     function
-    | (IntLTS.Active act_conf, _) as act_state -> begin
+    | (IntLTS.Active act_conf, _) as _act_state -> begin
         match IntLTS.EvalMonad.run (IntLTS.p_trans act_conf) with
+        _ -> failwith "TODO"
+(*
         | PropStop -> add_failed_state act_state
         | Continue (pmove, pas_conf) ->
             let* pas_state = add_pas_state pas_conf in
@@ -133,6 +135,7 @@ module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) : GRAPH with module M
             let* () = add_edge edge in
             compute_graph_monad ~show_move ~show_conf ~show_moves_list ~get_move
               pas_state
+*)
       end
     | (IntLTS.Passive pas_conf, _) as pas_state ->
         let* (input_move, act_conf) =

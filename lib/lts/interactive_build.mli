@@ -4,10 +4,9 @@ module type IBUILD = sig
 
   type conf
 
-  (* *)
-
   val interactive_build :
     show_move:(string -> unit) ->
+    choose_conf:(Yojson.Safe.t option list -> int M.m) ->
     show_conf:(Yojson.Safe.t -> unit) ->
     show_moves_list:(Yojson.Safe.t list -> unit) ->
     (* the argument of get_move is the 

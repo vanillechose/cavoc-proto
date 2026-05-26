@@ -65,16 +65,13 @@ module Make (BranchMonad : Util.Monad.BRANCH) :
       - Σ;Γ ⊢ A : τ ▷ Δ (as a nup)
   *)
 
-  let generate_abstract_val (_, _, cons_ctx as storectx) namectx ty =
+  let generate_abstract_val (loc_ctx, branch_ctx, cons_ctx as storectx) namectx ty =
     let open BranchMonad in
     let rec aux (storectx, lnamectx as res) = function
       | TUnit -> return (Unit, res)
       | TBool ->
-          let id, storectx' =
-            match Store.Storectx.add_fresh storectx "" TBool with
-            | (Sym id, storectx') -> id, storectx'
-            | _ -> failwith "add_fresh should have return a symbolic variable"
-          in
+          let id, branch_ctx' = Symbolic.unconstrained branch_ctx in
+          let storectx' = (loc_ctx, branch_ctx', cons_ctx) in
           let value = Symbolic (Symbolic.Kvar id) in
           return (value, (storectx', lnamectx))
       | TInt ->

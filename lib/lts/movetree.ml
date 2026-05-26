@@ -92,6 +92,7 @@ module MakeLang
 
   let renaming_a_nf _renaming = failwith "TODO"
 
+(*
   let eval ((move, movetree), namectx, storectx) :
       ((abstract_normal_form * Namectx.t * Storectx.t) * IEnv.t * store)
       EvalMonad.m =
@@ -100,6 +101,8 @@ module MakeLang
     | Some moveOut ->
         EvalMonad.return
           ((moveOut, namectx, storectx), IEnv.empty namectx, movetree)
+*)
+  let eval _ = failwith "TODO"
 
   let get_subject_name : abstract_normal_form -> Names.name =
     MoveTree.Moves.get_subject_name

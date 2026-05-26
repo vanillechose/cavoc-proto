@@ -20,12 +20,18 @@ let rec init_page () =
   let button = Dom_html.getElementById "submit" in
   let select_button = Dom_html.getElementById "select-btn" in
   let stop_button = Dom_html.getElementById "stop-btn" in
+  let debug_btn = Dom_html.getElementById "debug-log-check" in
+  Js.Unsafe.set debug_btn "checked" (Js.bool !Util.Debug.debug_mode) ;
 
   let shut_button = Dom_html.getElementById "shutdown-btn" in
   shut_button##.onclick := Dom_html.handler ( fun _ -> 
     Lwt.async (fun () -> let%lwt _ = Js_of_ocaml_lwt.XmlHttpRequest.get "../stop" in Lwt.return ());
     Js._true
   );
+
+  Ui_helpers.set_button_enabled "conf-prev" false ;
+  Ui_helpers.set_button_enabled "conf-next" false ;
+  Ui_helpers.set_button_enabled "conf-choose" false ;
 
   Js.Unsafe.set select_button "disabled" Js._true;
   Js.Unsafe.set select_button "style"
