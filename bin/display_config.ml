@@ -32,9 +32,9 @@ let generate_store_html_from_json (store_json : Yojson.Safe.t) (ienv_json : Yojs
   in
 
   match store_json with
-  | `List items ->
+  | `Assoc items ->
       let all_pairs =
-        items
+        List.map snd items
         |> List.map (function `Assoc pairs -> pairs | _ -> [])
         |> List.flatten
       in
@@ -130,7 +130,7 @@ let display_conf conf_json : unit =
       let ienv_opt = List.assoc_opt "ienv" fields in
 
       (match List.assoc_opt "store" fields with
-      | Some (`List _ as store_json) ->
+      | Some (`Assoc _ as store_json) ->
           let store_html = generate_store_html_from_json store_json ienv_opt in
           Ui_helpers.update_container "store" store_html
       | Some (`String store_str) ->
