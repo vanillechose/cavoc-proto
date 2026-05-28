@@ -14,6 +14,14 @@ open Js_of_ocaml
 let generate_kind_lts () =
   let open Lts_kind in
   let oplang = RefML in
+  let symbolic =
+    match Dom_html.getElementById_opt "symbolic-check" with
+    | Some el ->
+        (match Js.Opt.to_option (Dom_html.CoerceTo.input el) with
+        | Some input when Js.to_bool input##.checked -> true
+        | _ -> false)
+    | _ -> false
+  in
   let control =
     match Dom_html.getElementById_opt "direct-style-check" with
     | None -> CPS
@@ -37,11 +45,11 @@ let generate_kind_lts () =
     (match Dom_html.getElementById_opt "visibility-check" with
     | Some el -> 
         (match Js.Opt.to_option (Dom_html.CoerceTo.input el) with
-         | Some input when Js.to_bool input##.checked -> 
-              res_list := Visibility :: !res_list
+         | Some input when Js.to_bool input##.checked ->
+              res_list := WellBracketing :: !res_list
          | _ -> ())
     | None -> ());
     
     !res_list
   in
-  {oplang; control; restrictions}
+  {oplang; symbolic; control; restrictions}

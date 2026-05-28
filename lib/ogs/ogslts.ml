@@ -8,7 +8,8 @@ module Make
          and type store_ctx = Lang.Storectx.t) :
   Lts.Strategy.LTS_WITH_INIT
     with module TypingLTS = TypingLTS
-     and module TypingLTS.Moves.Renaming = Lang.IEnv.Renaming = struct
+     and module TypingLTS.Moves.Renaming = Lang.IEnv.Renaming
+     and type 'a EvalMonad.r = 'a Lang.EvalMonad.r = struct
   module TypingLTS = TypingLTS
   module EvalMonad = Lang.EvalMonad
   module Moves = TypingLTS.Moves

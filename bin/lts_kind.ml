@@ -15,25 +15,74 @@ type restriction = Visibility | WellBracketing [@@deriving yojson]
 
 type kind_lts = {
   oplang: oplang;
+  symbolic: bool;
   control: control_structure;
   restrictions: restriction list
 } [@@deriving yojson]
 
-let build_oplang kind : (module Lang.Language.WITHAVAL_INOUT) =
-  match kind.oplang with
-  | RefML -> (module Refml.RefML.WithAVal (Util.Monad.ListB))
+(* This is only needed because parametrized types in package constraints
+   (i.e. mod constraints in package types (first class modules)) are not
+   supported by OCaml (as of 5.4) *)
+module type SINGLE_OPLANG  = Lang.Language.WITHAVAL_INOUT    with type 'a EvalMonad.r = 'a
+module type MULTI_OPLANG  = Lang.Language.WITHAVAL_INOUT    with type 'a EvalMonad.r = 'a list
 
-let build_intlang kind (module OpLang : Lang.Language.WITHAVAL_INOUT) :
-    (module Lang.Interactive.LANG_WITH_INIT) =
+module type SINGLE_INTLANG = Lang.Interactive.LANG_WITH_INIT with type 'a EvalMonad.r = 'a
+module type MULTI_INTLANG = Lang.Interactive.LANG_WITH_INIT with type 'a EvalMonad.r = 'a list
+
+module type SINGLE_RESULT_LTS_WITH_INIT = Lts.Strategy.LTS_WITH_INIT with type 'a EvalMonad.r = 'a
+module type MULTI_RESULT_LTS_WITH_INIT  = Lts.Strategy.LTS_WITH_INIT with type 'a EvalMonad.r = 'a list
+
+let build_oplang kind : (module SINGLE_OPLANG) =
+  match kind.oplang with
+  | RefML -> (module Refml.RefML.WithAValConcrete (Util.Monad.ListB))
+
+let build_oplang_multi kind : (module MULTI_OPLANG) =
+  match kind.oplang with
+  | RefML -> (module Refml.RefML.WithAValSymbolic (Util.Monad.ListB))
+
+let build_intlang kind (module OpLang : SINGLE_OPLANG) :
+    (module SINGLE_INTLANG) =
   match kind.control with
   | DirectStyle -> (module Lang.Direct.Make (OpLang))
   | CPS ->
       let module CpsLang = Lang.Cps.MakeComp (OpLang) () in
       (module Lang.Interactive.Make (CpsLang))
 
-let build_lts kind : (module Lts.Strategy.LTS_WITH_INIT) =
+let build_intlang_multi kind (module OpLang : MULTI_OPLANG) :
+    (module MULTI_INTLANG) =
+  match kind.control with
+  | DirectStyle -> (module Lang.Direct.Make (OpLang))
+  | CPS ->
+      let module CpsLang = Lang.Cps.MakeComp (OpLang) () in
+      (module Lang.Interactive.Make (CpsLang))
+
+let build_concrete_lts kind : (module SINGLE_RESULT_LTS_WITH_INIT) =
   let (module OpLang) = build_oplang kind in
   let (module IntLang) = build_intlang kind (module OpLang) in
+  let module TypingLTS = Ogs.Typing.Make (IntLang) in
+  match
+    ( List.mem WellBracketing kind.restrictions,
+      List.mem Visibility kind.restrictions )
+  with
+  | (false, false) -> (module Ogs.Ogslts.Make (IntLang) (TypingLTS))
+  | (true, false) ->
+      let module WBLTS = Ogs.Wblts.Make (TypingLTS.Moves) in
+      let module TypingLTS = Lts.Product_lts.Make (TypingLTS) (WBLTS) in
+      (module Ogs.Ogslts.Make (IntLang) (TypingLTS))
+  | (false, true) ->
+      let module VisLTS = Ogs.Vis_lts.Make (TypingLTS.Moves) in
+      let module TypingLTS = Lts.Product_lts.Make (TypingLTS) (VisLTS) in
+      (module Ogs.Ogslts.Make (IntLang) (TypingLTS))
+  | (true, true) ->
+      let module WBLTS = Ogs.Wblts.Make (TypingLTS.Moves) in
+      let module TypingLTS = Lts.Product_lts.Make (TypingLTS) (WBLTS) in
+      let module VisLTS = Ogs.Vis_lts.Make (TypingLTS.Moves) in
+      let module TypingLTS = Lts.Product_lts.Make (TypingLTS) (VisLTS) in
+      (module Ogs.Ogslts.Make (IntLang) (TypingLTS))
+
+let build_symbolic_lts kind : (module MULTI_RESULT_LTS_WITH_INIT) =
+  let (module OpLang) = build_oplang_multi kind in
+  let (module IntLang) = build_intlang_multi kind (module OpLang) in
   let module TypingLTS = Ogs.Typing.Make (IntLang) in
   match
     ( List.mem WellBracketing kind.restrictions,

@@ -1,5 +1,6 @@
 {
   "directStyle": true,
   "wellBracketing": true,
-  "visibility": false
+  "visibility": false,
+  "symbolic": false
 }

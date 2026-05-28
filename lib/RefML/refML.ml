@@ -49,24 +49,10 @@ let parse_and_handle_error parser_entry lexbuf =
     | Parser.Error ->
         failwith (format_msg ("Parsing Error"))
 
-module MakeComp (BranchMonad : Util.Monad.BRANCH) :
-  Lang.Language.COMP
-    with type term = Syntax.term
-     and type value = Syntax.value
-     and type negative_val = Syntax.negative_val
-     and type typ = Types.typ
-     and type negative_type = Types.negative_type
-     and type Store.label = Syntax.label
-     and type Store.Storectx.t = Store.Storectx.t
-     and type Namectx.t = Namectx.Namectx.t
-     and type Renaming.t = Renaming.Renaming.t
-     and type IEnv.t = Ienv.IEnv.t
-     and module Names = Names
-     and module Store.BranchMonad = BranchMonad = struct
+module MakeCompBase (BranchMonad : Util.Monad.BRANCH) = struct
   include Syntax
   include Typed
   module Store = MakeStore (BranchMonad)
-  module EvalMonad = Util.Monad.Result
   module IEnv = Ienv.IEnv
 
   type opconf = Interpreter.opconf
@@ -74,13 +60,6 @@ module MakeComp (BranchMonad : Util.Monad.BRANCH) :
   let pp_opconf fmt (term, store) =
     Format.fprintf fmt "@[(@[Computation: %a@] @| @[Store: %a@])@]" pp_term term
       Store.pp_store store
-
-  let normalize_opconf opconf = 
-    let open EvalMonad in
-    match
-    Interpreter.normalize_opconf opconf with
-    | _ :: _ as res -> List.map (fun x -> Continue x) res
-    | [] -> fail ()
 
   let get_typed_opconf nbprog lexBuffer =
     try
@@ -110,10 +89,62 @@ module MakeComp (BranchMonad : Util.Monad.BRANCH) :
     | Type_checker.TypingError msg -> failwith ("Typing Error: " ^ msg)
 end
 
-module WithAVal (BranchMonad : Util.Monad.BRANCH) :
-  Lang.Language.WITHAVAL_INOUT = struct
-  include MakeComp (BranchMonad)
+module MakeCompSymbolic (BranchMonad : Util.Monad.BRANCH) :
+  Lang.Language.COMP
+    with type term = Syntax.term
+     and type value = Syntax.value
+     and type negative_val = Syntax.negative_val
+     and type typ = Types.typ
+     and type negative_type = Types.negative_type
+     and type Store.label = Syntax.label
+     and type Store.Storectx.t = Store.Storectx.t
+     and type Namectx.t = Namectx.Namectx.t
+     and type Renaming.t = Renaming.Renaming.t
+     and type IEnv.t = Ienv.IEnv.t
+     and type 'a EvalMonad.r = 'a list
+     and module Names = Names
+     and module Store.BranchMonad = BranchMonad = struct
+  include MakeCompBase (BranchMonad)
 
+  module EvalMonad = Util.Monad.Result
+
+  let normalize_opconf opconf = 
+    let open EvalMonad in
+    match
+    Interpreter.normalize_opconf opconf with
+    | _ :: _ as res -> List.map (fun x -> Continue x) res
+    | [] -> fail ()
+end
+
+module MakeCompConcrete (BranchMonad : Util.Monad.BRANCH) :
+  Lang.Language.COMP
+    with type term = Syntax.term
+     and type value = Syntax.value
+     and type negative_val = Syntax.negative_val
+     and type typ = Types.typ
+     and type negative_type = Types.negative_type
+     and type Store.label = Syntax.label
+     and type Store.Storectx.t = Store.Storectx.t
+     and type Namectx.t = Namectx.Namectx.t
+     and type Renaming.t = Renaming.Renaming.t
+     and type IEnv.t = Ienv.IEnv.t
+     and type 'a EvalMonad.r = 'a
+     and module Names = Names
+     and module Store.BranchMonad = BranchMonad = struct
+  include MakeCompBase (BranchMonad)
+
+  module EvalMonad = Util.Monad.SingleResult
+
+  let normalize_opconf opconf = 
+    let open EvalMonad in
+    match
+    Interpreter.normalize_opconf opconf with
+    | res :: [] -> Continue res
+    | [] -> fail ()
+    | _ -> failwith "Non-determinism in concrete interpreter"
+end
+
+module WithAValBase (BranchMonad : Util.Monad.BRANCH) = struct
   type eval_context = Syntax.eval_context [@@deriving to_yojson]
 
   let pp_eval_context = Syntax.pp_eval_context
@@ -153,7 +184,7 @@ module WithAVal (BranchMonad : Util.Monad.BRANCH) :
   let generate_nf_term_call = Nf_gen.generate_nf_term_call
   let generate_nf_term_ret = Nf_gen.generate_nf_term_ret
 
-  type normal_form_term = (value, eval_context, Names.name, unit) Nf.nf_term
+  type normal_form_term = (Syntax.value, eval_context, Names.name, unit) Nf.nf_term
 
   let refold_nf_term = Syntax.refold_nf_term
   let get_nf_term = Syntax.get_nf_term
@@ -162,18 +193,66 @@ module WithAVal (BranchMonad : Util.Monad.BRANCH) :
   let generate_nf_skeleton = Nf_gen.generate_nf_skeleton
   let fill_nf_skeleton = Nf_gen.fill_nf_skeleton*)
 
+(*
   module AVal :
     Lang.Abstract_val.AVAL
       with type name = Names.name
-       and type value = Syntax.value
-       and type negative_val = Syntax.negative_val
-       and type typ = Types.typ
-       and type negative_type = Types.negative_type
-       and type label = Syntax.label
-       and type store_ctx = Store.Storectx.t
-       and type name_ctx = Namectx.t
-       and type renaming = Renaming.t
        and type interactive_env = Ienv.IEnv.t
+       and type label = Syntax.label
+       and type name_ctx = Namectx.t
+       and type negative_type = Types.negative_type
+       and type negative_val = Syntax.negative_val
+       and type renaming = Renaming.t
+       and type store_ctx = Store.Storectx.t
+       and type typ = Types.typ
+       and type value = Syntax.value
        and module BranchMonad = BranchMonad =
     Nup.Make (BranchMonad)
+*)
+end
+
+module WithAValSymbolic (BranchMonad : Util.Monad.BRANCH) :
+  Lang.Language.WITHAVAL_INOUT
+    with type 'a EvalMonad.r = 'a list = struct
+  include MakeCompSymbolic (BranchMonad)
+
+  include WithAValBase (BranchMonad)
+
+  module AVal :
+    Lang.Abstract_val.AVAL
+      with type name = Names.name
+       and type interactive_env = Ienv.IEnv.t
+       and type label = Syntax.label
+       and type name_ctx = Namectx.t
+       and type negative_type = Types.negative_type
+       and type negative_val = Syntax.negative_val
+       and type renaming = Renaming.t
+       and type store_ctx = Store.Storectx.t
+       and type typ = Types.typ
+       and type value = Syntax.value
+       and module BranchMonad = BranchMonad =
+    Nup.Make (BranchMonad) (Nup.MakeGenerateSymbolicValue (BranchMonad))
+end
+
+module WithAValConcrete (BranchMonad : Util.Monad.BRANCH) :
+  Lang.Language.WITHAVAL_INOUT
+    with type 'a EvalMonad.r = 'a = struct
+  include MakeCompConcrete (BranchMonad)
+
+  include WithAValBase (BranchMonad)
+
+  module AVal :
+    Lang.Abstract_val.AVAL
+      with type name = Names.name
+       and type interactive_env = Ienv.IEnv.t
+       and type label = Syntax.label
+       and type name_ctx = Namectx.t
+       and type negative_type = Types.negative_type
+       and type negative_val = Syntax.negative_val
+       and type renaming = Renaming.t
+       and type store_ctx = Store.Storectx.t
+       and type typ = Types.typ
+       and type value = Syntax.value
+       and module BranchMonad = BranchMonad =
+    Nup.Make (BranchMonad) (Nup.MakeGenerateConcreteValue (BranchMonad))
 end

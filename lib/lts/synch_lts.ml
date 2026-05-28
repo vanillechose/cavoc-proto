@@ -1,7 +1,8 @@
 module Make (IntLts : Strategy.LTS_WITH_INIT) :
   Strategy.LTS_WITH_INIT_BIN
     with type TypingLTS.Moves.Renaming.Namectx.t =
-      IntLts.TypingLTS.Moves.Renaming.Namectx.t = struct
+      IntLts.TypingLTS.Moves.Renaming.Namectx.t
+     and type 'a EvalMonad.r = 'a IntLts.EvalMonad.r = struct
   module TypingLTS = IntLts.TypingLTS
   module EvalMonad = IntLts.EvalMonad
 

@@ -8,7 +8,6 @@ module type IBUILD = sig
 
   val interactive_build :
     show_move:(string -> unit) ->
-    choose_conf:(Yojson.Safe.t option list -> int M.m) ->
     show_conf:(Yojson.Safe.t -> unit) ->
     show_moves_list:(Yojson.Safe.t list -> unit) ->
     (* the argument of get_move is the 
@@ -18,31 +17,25 @@ module type IBUILD = sig
     unit M.m
 end
 
-module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) = struct
+module type RUN_LTS = sig
+  include Strategy.LTS
+
+  module M : Util.Monad.MONAD
+
+  val choose : (TypingLTS.Moves.pol_move * passive_conf) EvalMonad.m -> (TypingLTS.Moves.pol_move * passive_conf) EvalMonad.result M.m
+end
+
+module Make (M : Util.Monad.MONAD) (IntLTS : RUN_LTS with module M = M) = struct
   module M = M
   type conf = IntLTS.conf
 
   open M
 
-  let rec interactive_build ~show_move ~choose_conf ~show_conf ~show_moves_list ~get_move
+  let rec interactive_build ~show_move ~show_conf ~show_moves_list ~get_move
       conf =
     match conf with
     | IntLTS.Active act_conf -> begin
-        let res = IntLTS.EvalMonad.run (IntLTS.p_trans act_conf) in
-
-        Util.Debug.print_debug
-          ("build: got " ^ string_of_int (List.length res) ^ " configurations after run") ;
-
-        let res_to_json = function
-          | IntLTS.EvalMonad.PropStop -> None
-          | IntLTS.EvalMonad.Continue (_, pas_conf) ->
-            let conf_json = IntLTS.passive_conf_to_yojson pas_conf in
-            Some conf_json
-        in
-
-        let* choosen_conf_idx = choose_conf (List.map res_to_json res) in
-        let res = List.nth res choosen_conf_idx in
-
+        let* res = IntLTS.choose (IntLTS.p_trans act_conf) in
         match res with
         | IntLTS.EvalMonad.PropStop ->
             print_endline "Proponent has quitted the game.";
@@ -51,7 +44,7 @@ module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) = struct
             let move_string =
               IntLTS.TypingLTS.Moves.string_of_pol_move output_move in
             show_move move_string;
-            interactive_build ~show_move ~choose_conf ~show_conf ~show_moves_list ~get_move
+            interactive_build ~show_move ~show_conf ~show_moves_list ~get_move
               (IntLTS.Passive pas_conf)
       end
     | IntLTS.Passive pas_conf ->
@@ -71,6 +64,6 @@ module Make (M : Util.Monad.MONAD) (IntLTS : Strategy.LTS) = struct
         let (input_move, act_conf) = List.nth results_list chosen_index in
         let move_string = IntLTS.TypingLTS.Moves.string_of_pol_move input_move in
         let () = show_move move_string in
-        interactive_build ~show_move ~choose_conf ~show_conf ~show_moves_list ~get_move
+        interactive_build ~show_move ~show_conf ~show_moves_list ~get_move
           (IntLTS.Active act_conf)
 end

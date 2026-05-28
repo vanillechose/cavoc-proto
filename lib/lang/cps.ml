@@ -2,8 +2,9 @@
    into a module of signature Language.WITHAVAL_NEG.
    This is done by introducing named terms and named evaluation contexts,
    and by embedding named evaluation contexts in values. *)
-module MakeComp (OpLang : Language.WITHAVAL_INOUT) () : Language.WITHAVAL_NEG =
-struct
+module MakeComp (OpLang : Language.WITHAVAL_INOUT) () :
+  Language.WITHAVAL_NEG
+    with type 'a EvalMonad.r = 'a OpLang.EvalMonad.r = struct
   module EvalMonad = OpLang.EvalMonad
   open EvalMonad
   (* *)

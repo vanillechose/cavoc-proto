@@ -1,5 +1,6 @@
-module Make (OpLang : Language.WITHAVAL_INOUT) : Interactive.LANG_WITH_INIT =
-struct
+module Make (OpLang : Language.WITHAVAL_INOUT) :
+  Interactive.LANG_WITH_INIT
+    with type 'a EvalMonad.r = 'a OpLang.EvalMonad.r = struct
   module EvalMonad = OpLang.EvalMonad
   module BranchMonad = OpLang.AVal.BranchMonad
 

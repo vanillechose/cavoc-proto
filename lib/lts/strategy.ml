@@ -31,4 +31,3 @@ module type LTS_WITH_INIT_BIN = sig
   val lexing_init_aconf : Lexing.lexbuf -> Lexing.lexbuf -> active_conf
   val lexing_init_pconf : Lexing.lexbuf -> Lexing.lexbuf -> Lexing.lexbuf -> passive_conf
 end
-

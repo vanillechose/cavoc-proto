@@ -109,7 +109,9 @@ end
 
 (* The following functor create a module of type Interactive.LANG_WITH_INIT
    from a module OpLang of type Language.WITHAVAL_NEG *)
-module Make (OpLang : Language.WITHAVAL_NEG) : LANG_WITH_INIT = struct
+module Make (OpLang : Language.WITHAVAL_NEG) :
+  LANG_WITH_INIT
+    with type 'a EvalMonad.r = 'a OpLang.EvalMonad.r = struct
   module EvalMonad = OpLang.EvalMonad
   module BranchMonad = OpLang.AVal.BranchMonad
   module IEnv = OpLang.IEnv

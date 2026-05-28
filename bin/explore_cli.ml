@@ -53,7 +53,7 @@ let generate_kind_lts () =
   let restrictions =
     if !enable_visibility then Visibility :: restrictions else restrictions
   in
-  { oplang; control; restrictions }
+  { oplang; symbolic = false; control; restrictions }
 
 let fix_mode () =
   match (!is_compare, !is_compose) with
@@ -161,6 +161,7 @@ let run_interaction (type a) (module IBuild : Lts.Interactive_build.IBUILD with 
         print_endline "choice out of range";
         askagain ()) in
     IBuild.M.return  @@ ask (Printf.sprintf "1..%d" n) aux in
+
   let _result =
     IBuild.interactive_build ~show_move ~show_conf ~show_moves_list ~get_move
       init_conf in ()
@@ -174,13 +175,30 @@ let open_lexbuf filename =
   Lexing.set_filename exprBuffer filename;
   exprBuffer
 
-let build_strategy (module LTS : Lts.Strategy.LTS_WITH_INIT) =
+let build_strategy (module LTS : Lts_kind.SINGLE_RESULT_LTS_WITH_INIT) =
   check_number_filenames ();
+
+  let module RunLts =
+    struct
+      include LTS
+
+      module M = Output
+
+      let choose = failwith "TODO"
+    end
+  in
+
   match !is_mode with
   | Compare -> begin
       let exprBuffer1 = open_lexbuf !filename1 in
       let exprBuffer2 = open_lexbuf !filename2 in
-      let module Synch_LTS = Lts.Synch_lts.Make (LTS) in
+      (* This is needed to make sure that Synch_LTS is *)
+      let module Synch_LTS =
+        struct
+          include RunLts
+          include Lts.Synch_lts.Make (RunLts)
+        end 
+      in
       let init_conf =
         Synch_LTS.Active (Synch_LTS.lexing_init_aconf exprBuffer1 exprBuffer2)
       in
@@ -192,7 +210,7 @@ let build_strategy (module LTS : Lts.Strategy.LTS_WITH_INIT) =
         Util.Debug.print_debug "Getting the program";
         let expr_lexbuffer = open_lexbuf !filename1 in
         let init_conf = LTS.Active (LTS.lexing_init_aconf expr_lexbuffer) in
-        let module IBuild = Lts.Interactive_build.Make (Output) (LTS) in
+        let module IBuild = Lts.Interactive_build.Make (Output) (RunLts) in
         run_interaction (module IBuild) init_conf
       end
       else begin
@@ -202,7 +220,7 @@ let build_strategy (module LTS : Lts.Strategy.LTS_WITH_INIT) =
         let init_conf =
           LTS.Passive (LTS.lexing_init_pconf decl_lexbuffer signature_lexbuffer)
         in
-        let module IBuild = Lts.Interactive_build.Make (Output) (LTS) in
+        let module IBuild = Lts.Interactive_build.Make (Output) (RunLts) in
         run_interaction (module IBuild) init_conf
       end
   | Compose -> failwith "Compose is not yet implemented"
@@ -211,5 +229,5 @@ let () =
   Arg.parse speclist get_filename usage_msg;
   fix_mode ();
   let kind_lts = generate_kind_lts () in
-  let lts = Lts_kind.build_lts kind_lts in
+  let lts = Lts_kind.build_concrete_lts kind_lts in
   build_strategy lts

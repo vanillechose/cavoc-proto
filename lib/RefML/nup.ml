@@ -1,15 +1,42 @@
-module Make (BranchMonad : Util.Monad.BRANCH) :
+open Syntax
+
+module type GENERATE_VALUE = sig
+  module BranchMonad : Util.Monad.BRANCH
+
+  val generate_bool : Store.Storectx.t -> (value * Store.Storectx.t) BranchMonad.m
+end
+
+module MakeGenerateSymbolicValue (BranchMonad : Util.Monad.BRANCH) = struct
+  module BranchMonad = BranchMonad
+
+  let generate_bool (loc_ctx, branch_ctx, cons_ctx) =
+    let id, branch_ctx' = Symbolic.unconstrained branch_ctx in
+    let storectx' = (loc_ctx, branch_ctx', cons_ctx) in
+    let value = Symbolic (Symbolic.Kvar id) in
+    BranchMonad.return (value, storectx')
+end
+
+module MakeGenerateConcreteValue (BranchMonad : Util.Monad.BRANCH) = struct
+  module BranchMonad = BranchMonad
+
+  let generate_bool storectx =
+    BranchMonad.para_list [ (Bool true, storectx) ; (Bool false, storectx) ]
+end
+
+module Make (BranchMonad : Util.Monad.BRANCH)
+            (GenerateValue : GENERATE_VALUE
+              with module BranchMonad = BranchMonad) :
   Lang.Abstract_val.AVAL
     with type name = Names.name
-     and type renaming = Renaming.Renaming.t
-     and type value = Syntax.value
-     and type negative_val = Syntax.negative_val
-     and type typ = Types.typ
-     and type negative_type = Types.negative_type
-     and type label = Syntax.label
-     and type store_ctx = Store.Storectx.t
-     and type name_ctx = Namectx.Namectx.t
      and type interactive_env = Ienv.IEnv.t
+     and type label = Syntax.label
+     and type name_ctx = Namectx.Namectx.t
+     and type negative_type = Types.negative_type
+     and type negative_val = Syntax.negative_val
+     and type renaming = Renaming.Renaming.t
+     and type store_ctx = Store.Storectx.t
+     and type typ = Types.typ
+     and type value = Syntax.value
      and module BranchMonad = BranchMonad = struct
   (* Instantiation *)
   module BranchMonad = BranchMonad
@@ -24,8 +51,6 @@ module Make (BranchMonad : Util.Monad.BRANCH) :
   type store_ctx = Store.Storectx.t
   type name_ctx = Namectx.Namectx.t
   (* *)
-
-  open Syntax
   open Types
 
   type interactive_env = Ienv.IEnv.t
@@ -65,14 +90,12 @@ module Make (BranchMonad : Util.Monad.BRANCH) :
       - Σ;Γ ⊢ A : τ ▷ Δ (as a nup)
   *)
 
-  let generate_abstract_val (loc_ctx, branch_ctx, cons_ctx as storectx) namectx ty =
+  let generate_abstract_val (_, _, cons_ctx as storectx) namectx ty =
     let open BranchMonad in
     let rec aux (storectx, lnamectx as res) = function
       | TUnit -> return (Unit, res)
       | TBool ->
-          let id, branch_ctx' = Symbolic.unconstrained branch_ctx in
-          let storectx' = (loc_ctx, branch_ctx', cons_ctx) in
-          let value = Symbolic (Symbolic.Kvar id) in
+          let* (value, storectx') = GenerateValue.generate_bool storectx in
           return (value, (storectx', lnamectx))
       | TInt ->
           (* TODO: replace pick_int by some kind of "Hole" constructor *)
