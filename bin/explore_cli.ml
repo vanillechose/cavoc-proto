@@ -184,7 +184,8 @@ let build_strategy (module LTS : Lts_kind.SINGLE_RESULT_LTS_WITH_INIT) =
 
       module M = Output
 
-      let choose = failwith "TODO"
+      let choose m =
+        M.return (EvalMonad.run m)
     end
   in
 
@@ -195,8 +196,12 @@ let build_strategy (module LTS : Lts_kind.SINGLE_RESULT_LTS_WITH_INIT) =
       (* This is needed to make sure that Synch_LTS is *)
       let module Synch_LTS =
         struct
-          include RunLts
-          include Lts.Synch_lts.Make (RunLts)
+          include Lts.Synch_lts.Make (LTS)
+
+          module M = Output
+
+          let choose m =
+            M.return (EvalMonad.run m)
         end 
       in
       let init_conf =

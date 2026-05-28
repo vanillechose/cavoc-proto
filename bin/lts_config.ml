@@ -46,7 +46,7 @@ let generate_kind_lts () =
     | Some el -> 
         (match Js.Opt.to_option (Dom_html.CoerceTo.input el) with
          | Some input when Js.to_bool input##.checked ->
-              res_list := WellBracketing :: !res_list
+              res_list := Visibility :: !res_list
          | _ -> ())
     | None -> ());
     
