@@ -9,9 +9,9 @@ end
 module MakeGenerateSymbolicValue (BranchMonad : Util.Monad.BRANCH) = struct
   module BranchMonad = BranchMonad
 
-  let generate_bool (loc_ctx, branch_ctx, cons_ctx) =
-    let id, branch_ctx' = Symbolic.unconstrained branch_ctx in
-    let storectx' = (loc_ctx, branch_ctx', cons_ctx) in
+  let generate_bool (loc_ctx, symbolic_ctx, cons_ctx) =
+    let id, symbolic_ctx' = Symbolic.unconstrained symbolic_ctx in
+    let storectx' = (loc_ctx, symbolic_ctx', cons_ctx) in
     let value = Symbolic (Symbolic.Kvar id) in
     BranchMonad.return (value, storectx')
 end

@@ -21,11 +21,11 @@ let neg = function
   | Knot k -> k
   | k -> Knot k
 
-type branch_ctx = (id * Types.typ) list [@@deriving to_yojson]
+type symbolic_ctx = (id * Types.typ) list [@@deriving to_yojson]
 
 type branch =
   (* All symbolic variables declared in this branch *)
-  { pathdecl : branch_ctx
+  { pathdecl : symbolic_ctx
   (* All constraints accumulated in this branch *)
   ; pathcond : konstraint list
   }
@@ -107,7 +107,7 @@ let pp_pathcond fmt = Format.fprintf fmt "%a" (pp_list pp_sep pp_constraint)
 
 let branch_to_yojson { pathdecl ; pathcond ; _ } =
   `Assoc [
-    "decl" , branch_ctx_to_yojson pathdecl ;
+    "decl" , symbolic_ctx_to_yojson pathdecl ;
     "cond" , `List (List.map (fun k -> `String (string_of_constraint k)) pathcond)
   ]
 
@@ -122,18 +122,18 @@ let union_ctx ctx1 ctx2 =
   ctx1 @ ctx2
 
 (* Extends a branch with all the declarations from ctx *)
-let extend_branch_ctx branch ctx =
+let extend_symbolic_ctx branch ctx =
   { branch with pathdecl = branch.pathdecl @ ctx }
 
-let empty_branch_ctx = []
+let empty_symbolic_ctx = []
 let empty =
-  { pathdecl = empty_branch_ctx
+  { pathdecl = empty_symbolic_ctx
   ; pathcond = []
   }
 
-let unconstrained branch_ctx =
+let unconstrained symbolic_ctx =
   let sym = fresh_symbolic () in
-  sym, (sym, Types.TBool) :: branch_ctx
+  sym, (sym, Types.TBool) :: symbolic_ctx
 
 let add_constraint branch konstraint =
   { branch with pathcond = konstraint :: branch.pathcond }

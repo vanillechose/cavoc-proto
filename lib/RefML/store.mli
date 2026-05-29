@@ -3,7 +3,7 @@ type location
 type store =
   { valenv : Syntax.val_env
   ; heap : Heap.heap
-  ; branch : Symbolic.branch
+  ; symbolic_ctx : Symbolic.branch
   ; cons_ctx : Type_ctx.cons_ctx
   } [@@deriving to_yojson]
 
@@ -26,7 +26,7 @@ val symbolic_add_constraint : store -> Symbolic.konstraint -> store
 val embed_cons_ctx : Type_ctx.cons_ctx -> store
 
 module Storectx : Lang.Typectx.TYPECTX
-  with type t = Type_ctx.loc_ctx * Symbolic.branch_ctx * Type_ctx.cons_ctx
+  with type t = Type_ctx.loc_ctx * Symbolic.symbolic_ctx * Type_ctx.cons_ctx
   and type typ = Types.typ
   and type Names.name = location
 

@@ -69,7 +69,7 @@ module SymbolicEvalState = struct
                  If k is UNSAT, we know which branch to take. Also,
                  adding further constraints cannot make k SAT, which
                  could enable further optimizations? *)
-        if Symbolic.check_sat store.branch then
+        if Symbolic.check_sat store.symbolic_ctx then
           let* _ = set_store store in m
         else
           fail ()
